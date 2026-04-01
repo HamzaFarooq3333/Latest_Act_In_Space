@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Orbital Cells — Orchestrating the Orbital Ballet</title>
+    <meta
+      name="description"
+      content="A safety-first, decentralized space traffic coordination concept: orbital traffic cells + swarm rules + learning for efficiency."
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="topbar__inner">
+        <div class="brand">
+          <div class="brand__mark" aria-hidden="true"></div>
+          <div class="brand__text">
+            <div class="brand__name">Orbital Cells</div>
+            <div class="brand__tag">Safety-first decentralized STM</div>
+          </div>
+        </div>
+
+        <nav class="nav" aria-label="Primary">
+          <a href="#concept">Concept</a>
+          <a href="#simulation">Simulation</a>
+          <a href="#metrics">Metrics</a>
+          <a href="#dualuse">Dual-use</a>
+          <a href="#roadmap">Roadmap</a>
+        </nav>
+
+        <div class="topbar__cta">
+          <a class="btn btn--ghost" id="navLaunchDemo" href="#simulation">Launch demo</a>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <section class="switcher" aria-label="View switcher">
+        <div class="switcher__inner">
+          <button class="switcher__btn is-active" id="btnInfo" type="button">Information</button>
+          <button class="switcher__btn" id="btn3d" type="button">3D View</button>
+          <div class="switcher__hint">Tip: start with Information, then open 3D View for the live demo.</div>
+        </div>
+      </section>
+
+      <div id="infoView">
+        <!-- STORY / CONCEPT SECTION -->
+        <section class="hero" id="concept">
+        <div class="hero__grid">
+          <div class="hero__copy">
+            <p class="kicker">CNES #13 · ActInSpace 2026</p>
+            <h1>Orchestrating the orbital ballet.</h1>
+            <p class="lede">
+              When space becomes traffic, a single control tower can’t scale. Orbital Cells is a
+              <strong>decentralized</strong> coordination layer where spacecraft negotiate locally in dynamic
+              <strong>traffic cells</strong>, follow explainable safety rules, and learn efficiency policies in
+              simulation.
+            </p>
+
+            <div class="hero__buttons">
+              <a class="btn" id="openLiveSim" href="#simulation">Open live simulation</a>
+              <a class="btn btn--ghost" href="#roadmap">See rollout plan</a>
+            </div>
+
+            <div class="pillrow" role="list">
+              <div class="pill" role="listitem">
+                <div class="pill__k">Safety</div>
+                <div class="pill__v">Hard rules + audit logs</div>
+              </div>
+              <div class="pill" role="listitem">
+                <div class="pill__k">Scales</div>
+                <div class="pill__v">Local interactions in cells</div>
+              </div>
+              <div class="pill" role="listitem">
+                <div class="pill__k">Dual-use</div>
+                <div class="pill__v">Earth fleets → space STM</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="hero__panel">
+            <div class="panel">
+              <div class="panel__title">What you’ll see</div>
+              <ul class="panel__list">
+                <li>Baseline vs Centralized vs Swarm vs Hybrid modes</li>
+                <li>Dynamic traffic cells with intent sharing</li>
+                <li>Inject a debris event and watch re-routing</li>
+                <li>Live metrics + explainability “reason codes”</li>
+              </ul>
+              <div class="panel__note">
+                This demo is a simplified visual twin for storytelling and evaluation. The real system would
+                use flight dynamics, probabilistic conjunction analysis, and certified safety envelopes.
+              </div>
+            </div>
+          </div>
+        </div>
+        </section>
+
+        <section class="cards" id="dualuse">
+          <div class="sectionHead">
+            <h2>Dual-use wedge</h2>
+            <p class="subtle">
+              The same “traffic cell” coordination engine can ship on Earth first (revenue), then harden for
+              space.
+            </p>
+          </div>
+
+          <div class="cardGrid">
+            <article class="card">
+              <h3>Drone corridors</h3>
+              <p>Decentralized local rules for dense urban air mobility and inspection fleets.</p>
+            </article>
+            <article class="card">
+              <h3>Ports & logistics hubs</h3>
+              <p>Coordinate autonomous ground vehicles safely to increase throughput and reduce downtime.</p>
+            </article>
+            <article class="card">
+              <h3>Mining & industrial sites</h3>
+              <p>Operate in partially connected environments with robust fallback modes.</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="roadmap" id="roadmap">
+          <div class="sectionHead">
+            <h2>Rollout roadmap</h2>
+            <p class="subtle">A credible path from demo to deployment and qualification.</p>
+          </div>
+
+          <ol class="steps">
+            <li>
+              <div class="steps__k">Phase 1</div>
+              <div class="steps__v">Earth pilots: deploy the coordination engine for fleets and hubs.</div>
+            </li>
+            <li>
+              <div class="steps__k">Phase 2</div>
+              <div class="steps__v">Space sandbox: simulation + policy evaluation for operators and agencies.</div>
+            </li>
+            <li>
+              <div class="steps__k">Phase 3</div>
+              <div class="steps__v">Space qualification: certified safety layer + flight demo on controlled missions.</div>
+            </li>
+          </ol>
+        </section>
+
+        <footer class="footer">
+          <div class="footer__inner">
+            <div>Orbital Cells — concept prototype</div>
+            <div class="subtle">Made for hackathon demonstration and storytelling.</div>
+          </div>
+        </footer>
+      </div>
+
+      <div id="simView" class="is-hidden">
+        <!-- 3D SIMULATION SECTION -->
+        <section class="sim" id="simulation">
+        <div class="sim__header">
+          <div>
+            <h2>Live 3D simulation</h2>
+            <p class="subtle">
+              Toggle coordination modes, degrade comms, inject debris, and watch how local rules reduce risk
+              while learning improves efficiency.
+            </p>
+          </div>
+          <div class="sim__badges">
+            <span class="badge" id="badgeMode">Mode: Swarm</span>
+            <span class="badge" id="badgeStatus">Status: Running</span>
+          </div>
+        </div>
+
+        <div class="sim__stage">
+          <div class="canvasWrap">
+            <canvas id="scene" aria-label="3D simulation canvas"></canvas>
+            <div class="hud">
+              <div class="hud__title">Reason codes</div>
+              <div class="hud__feed" id="reasonFeed" aria-live="polite"></div>
+            </div>
+          </div>
+
+          <aside class="controls" aria-label="Simulation controls">
+            <div class="controls__section">
+              <div class="controls__h">Scenario & operator</div>
+              <div class="field">
+                <label for="scenarioSelect">Scenario</label>
+                <select id="scenarioSelect" class="select">
+                  <option value="">Loading…</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="operatorSelect">Operator profile</label>
+                <select id="operatorSelect" class="select">
+                  <option value="">Loading…</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="controls__section">
+              <div class="controls__h">Mode</div>
+              <div class="segmented" role="tablist" aria-label="Mode switch">
+                <button class="segmented__btn" data-mode="baseline">Baseline</button>
+                <button class="segmented__btn" data-mode="centralized">Centralized</button>
+                <button class="segmented__btn is-active" data-mode="swarm">Swarm</button>
+                <button class="segmented__btn" data-mode="hybrid">Hybrid</button>
+              </div>
+            </div>
+
+            <div class="controls__section">
+              <div class="controls__h">Parameters</div>
+              <div class="field">
+                <label for="simSpeed">Simulation speed</label>
+                <input id="simSpeed" type="range" min="0.25" max="3" step="0.05" value="1" />
+                <div class="field__meta">
+                  <span id="simSpeedVal">1.00×</span>
+                  <span class="subtle">Reason interval: <span id="simReasonInterval">~10s</span></span>
+                </div>
+              </div>
+              <div class="field">
+                <label for="objectCount">Object count</label>
+                <input id="objectCount" type="range" min="30" max="220" step="10" value="120" />
+                <div class="field__meta"><span id="objectCountVal">120</span></div>
+              </div>
+              <div class="field">
+                <label for="sensorNoise">Sensor noise</label>
+                <input id="sensorNoise" type="range" min="0" max="1" step="0.05" value="0.15" />
+                <div class="field__meta"><span id="sensorNoiseVal">0.15</span></div>
+              </div>
+              <div class="field">
+                <label for="commsReliability">Comms reliability</label>
+                <input id="commsReliability" type="range" min="0" max="1" step="0.05" value="0.85" />
+                <div class="field__meta"><span id="commsReliabilityVal">0.85</span></div>
+              </div>
+              <div class="field">
+                <label for="riskTolerance">Risk tolerance</label>
+                <input id="riskTolerance" type="range" min="0" max="1" step="0.05" value="0.35" />
+                <div class="field__meta"><span id="riskToleranceVal">0.35</span></div>
+              </div>
+            </div>
+
+            <div class="controls__section">
+              <div class="controls__h">Overlays</div>
+              <label class="check">
+                <input id="showCells" type="checkbox" checked />
+                <span>Show cells</span>
+              </label>
+              <label class="check">
+                <input id="showIntents" type="checkbox" />
+                <span>Show intents</span>
+              </label>
+              <label class="check">
+                <input id="protectedZone" type="checkbox" checked />
+                <span>Protected zone</span>
+              </label>
+            </div>
+
+            <div class="controls__section">
+              <div class="controls__h">Actions</div>
+              <div class="btnrow">
+                <button class="btn btn--small" id="injectDebris">Inject debris</button>
+                <button class="btn btn--small btn--ghost" id="disableComms">Disable comms</button>
+                <button class="btn btn--small btn--ghost" id="resetSim">Reset</button>
+              </div>
+            </div>
+
+            <div class="controls__section">
+              <div class="controls__h">Run + report</div>
+              <div class="btnrow">
+                <button class="btn btn--small" id="saveRun">Save run</button>
+                <a class="btn btn--small btn--ghost is-disabled" id="exportJson" href="#" target="_blank" rel="noreferrer">Export JSON</a>
+                <a class="btn btn--small btn--ghost is-disabled" id="exportTxt" href="#" target="_blank" rel="noreferrer">Export TXT</a>
+              </div>
+              <div class="mini" id="saveStatus">Not saved yet.</div>
+            </div>
+
+            <div class="controls__section">
+              <div class="controls__h">Ask AI (explainability)</div>
+              <div class="field">
+                <label for="aiQuestion">Question</label>
+                <textarea id="aiQuestion" class="textarea" rows="3" placeholder="Why did near-misses increase? What caused maneuvers to spike?"></textarea>
+              </div>
+              <div class="btnrow">
+                <button class="btn btn--small btn--ghost" id="askAi">Ask AI</button>
+              </div>
+              <div class="aiBox" id="aiAnswer">Save a run first, then ask a question.</div>
+            </div>
+          </aside>
+        </div>
+        </section>
+
+        <section class="metrics" id="metrics">
+          <div class="sectionHead">
+            <h2>Live metrics</h2>
+            <p class="subtle">Simple proxies that make safety and efficiency visible during a demo.</p>
+          </div>
+
+          <div class="metricGrid" role="list">
+            <div class="metric" role="listitem">
+              <div class="metric__k">Near-misses</div>
+              <div class="metric__v" id="mNearMisses">0</div>
+            </div>
+            <div class="metric" role="listitem">
+              <div class="metric__k">Maneuvers</div>
+              <div class="metric__v" id="mManeuvers">0</div>
+            </div>
+            <div class="metric" role="listitem">
+              <div class="metric__k">Δv proxy</div>
+              <div class="metric__v" id="mDeltaV">0.0</div>
+            </div>
+            <div class="metric" role="listitem">
+              <div class="metric__k">Throughput proxy</div>
+              <div class="metric__v" id="mThroughput">0</div>
+            </div>
+            <div class="metric" role="listitem">
+              <div class="metric__k">Message rate</div>
+              <div class="metric__v" id="mMsgRate">0/s</div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>
+

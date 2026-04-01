@@ -1,0 +1,28 @@
+Orbital Cells – COMPLETED
+==========================
+
+Features listed here are implemented and have passed basic verification.
+Only move items here from PROGRESS.txt after they are working end-to-end.
+
+Completed items:
+- scaffold-static-site: Initial landing page and layout.
+- threejs-sim-core: Three.js scene with Earth + instanced satellites.
+- swarm-modes-metrics: Baseline/Centralized/Swarm/Hybrid modes, debris events, and metrics + reason codes.
+- tracking-files: PROGRESS.txt and COMPLETED.txt created and maintained.
+- separate-story-and-sim: Story and Simulation clearly separated in the frontend.
+- view-switcher: Two-button switcher (Information / 3D View) with lazy-loading of the simulation.
+- backend-scaffold: Node.js + Express backend created.
+- sqlite-db: SQLite schema and runtime DB creation implemented.
+- scenarios-api: Scenario library + `GET /api/scenarios` implemented.
+- operator-profiles-api: Operator profiles + `GET /api/operator-profiles` implemented.
+- run-persistence: `POST /api/runs` and `GET /api/runs/:id` implemented.
+- export-report: `GET /api/runs/:id/export.json` and `GET /api/runs/:id/export.txt` implemented.
+- ai-explainability: `POST /api/ai/explain` implemented (requires OPENAI_API_KEY).
+- model-discovery-fallback: Model discovery + timeouts/retries/fallback implemented server-side.
+- api-key-security: API key is env-var-only; setup documented in README.txt.
+- frontend-wiring: Scenario/profile selection + Save/Export + Ask AI UI added.
+- textures-realistic-earth: Real-world Earth day/night textures + satellite panel texture integrated.
+- tests-smoke: API smoke tests added and passing for non-AI endpoints.
+- run-delete: DELETE /api/runs/:id implemented and verified via smoke test.
+- sim-speed-control: Adjustable simulation speed slider (motion + reason cadence) in 3D View.
+

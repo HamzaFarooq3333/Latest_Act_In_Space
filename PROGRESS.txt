@@ -1,0 +1,12 @@
+Orbital Cells – PROGRESS
+=========================
+
+This file tracks features that are being implemented or need verification.
+Once a feature is fully working and tested, it should be moved to COMPLETED.txt.
+
+Open items:
+- (none)
+
+Notes:
+- AI endpoint requires OPENAI_API_KEY set in the backend process environment (never stored in files). Without it, `/api/ai/explain` returns HTTP 400 by design.
+

@@ -1,0 +1,312 @@
+ACT IN SPACE 2026 — CNES #13
+Orchestrating the Orbital Ballet
+
+DOCUMENT PURPOSE
+This text explains, in detail, the hackathon problem and a proposed solution concept that can be pitched as a startup project. It is written so that a teammate, another AI, or a judge can quickly understand:
+- What the challenge is asking for
+- What the real operational problem is
+- The proposed AI approach and architecture
+- Why it is different / innovative
+- How it can be presented to judges (technical + business)
+- How it materially improves safety and efficiency (what it “solves”)
+
+
+1) THE CHALLENGE IN PLAIN WORDS (WHAT CNES #13 WANTS)
+Space is becoming “traffic-like”: many satellites, increasing debris, frequent maneuvers, future orbital logistics (cargo, servicing, “space trains”), and reusable launchers moving through shared orbital regions. The challenge states that the complexity has surpassed what humans can manage alone.
+
+Your task (as a startup team) is to:
+1) Pick ONE AI architecture family for autonomous missions (or a clearly justified hybrid):
+   - Swarm Intelligence (decentralized coordination)
+   - Reinforcement Learning (policies learned from simulation)
+   - Predictive maintenance (digital twin + failure forecasting)
+   - Computer vision (autonomous perception and navigation)
+2) Build a dual-use business plan:
+   - Terrestrial revenue first (a real paying market on Earth)
+   - Then a pathway to space-qualified software
+3) Identify smart funding and partnerships:
+   - Agencies/programs (e.g., CNES/ESA kick-starts, demos)
+   - Private funding (seed/strategic)
+   - Strategic partners (labs, operators, launch providers)
+
+This is not “build a fully space-qualified product in 24 hours.” It’s “show a credible, deeply thought-through concept and a believable path to product and market.”
+
+
+2) THE REAL-WORLD PROBLEM (WHAT IS ACTUALLY BREAKING)
+
+2.1 Scaling problem: too many objects, too many interactions
+- There are thousands of operational satellites today and many more planned.
+- Conjunction alerts scale roughly with the number of objects and potential encounter pairs; in dense regimes the number of “things to check” can explode.
+- Humans cannot reliably analyze and coordinate every warning, especially when multiple operators are involved.
+
+2.2 Coordination problem: multi-operator, incomplete information
+- Different satellite operators have different goals, risk tolerances, and maneuver capabilities.
+- Operators often do not share maneuver intent in a standardized, timely way.
+- If two parties maneuver independently, they can inadvertently increase risk or create cascading close approaches.
+
+2.3 Centralization problem: single “brain” does not scale or govern well
+- A purely centralized traffic manager faces:
+  - computational scaling limits
+  - single points of failure
+  - political and governance constraints (who controls it?)
+  - latency and comms constraints
+
+2.4 The future: it’s not just satellites
+- A future “orbital ballet” includes:
+  - servicing vehicles (tugs)
+  - orbital depots/stations
+  - frequent rendezvous/docking
+  - crew/cargo transportation
+  - reusable launchers transiting to/from orbit
+This multiplies traffic complexity and raises safety requirements.
+
+
+3) CHOSEN AI APPROACH (WHAT WE PICK AND WHY)
+
+Chosen approach: SWARM INTELLIGENCE, with a justified hybrid extension using MULTI-AGENT REINFORCEMENT LEARNING (MARL).
+
+Rationale:
+- Swarm Intelligence is the most directly aligned with “orchestrating” many assets without one central controller.
+- It is inherently scalable: each agent uses local rules and limited neighbor interactions.
+- It is robust: if one node fails, the swarm continues; no single central failure collapses the system.
+- It is explainable at the safety layer: local “rules of the road” can be documented and audited.
+- MARL is added carefully and only where appropriate: to improve efficiency (fuel/time) while respecting hard safety constraints.
+
+Important positioning:
+- Safety is not left to a black-box learner.
+- Learning is used to optimize within safe envelopes, not to define safety itself.
+
+
+4) PROPOSED SOLUTION: “ORBITAL CELLS / BALLETGRID”
+Concept summary:
+We propose a decentralized space traffic coordination system that partitions orbital space and time into dynamic “cells” (traffic regions). Each spacecraft/asset runs an onboard (or operator-side) agent that:
+1) Follows hard safety swarm rules with only local/neighbor information
+2) Negotiates maneuver intent with nearby agents via a minimal protocol
+3) Uses a learned policy (trained in simulation) to reduce unnecessary maneuvers and optimize performance under uncertainty
+
+
+5) DETAILED ARCHITECTURE (WHAT IS INSIDE THE SYSTEM)
+
+5.1 The “Cell” concept (why cells are key)
+Goal: limit complexity and communication.
+Instead of every satellite considering every other object globally, we define dynamic spatiotemporal “cells”:
+- A cell is a region of orbit-space + a time window (a 4D concept: position + altitude + time).
+- Each agent only coordinates with:
+  - objects in its current cell
+  - objects predicted to enter the cell during the time window
+  - adjacent cells (neighbor cells)
+
+Benefits:
+- Scalability: local coordination graphs stay small even if the overall population is huge.
+- Modularity: different regions can have different policies (e.g., a protected station zone vs. open LEO).
+- Governance: agencies can define rules per cell (priority corridors, exclusion zones).
+
+5.2 Layer 1 — Swarm safety layer (deterministic “rules of the road”)
+This layer enforces safety and baseline coordination using local rules that are:
+- deterministic
+- auditable
+- conservative under uncertainty
+
+Typical swarm-inspired rule set (high-level):
+- Separation: maintain minimum safe miss distance / closing speed thresholds.
+- Avoidance: treat debris clouds and “no-go” zones as obstacles.
+- Priority: yield behavior based on agreed priority classes (crewed > station operations > critical missions > standard).
+- Cohesion/formation constraints: for constellations, keep geometry while avoiding conflicts.
+- Maneuver smoothing: avoid oscillatory “everyone moves at once” behavior.
+
+Key safety principle:
+Even if the learning layer is disabled, Layer 1 still provides safe behavior (as safe as the models and available data allow).
+
+5.3 Layer 2 — Negotiation & intent protocol (cooperation without over-sharing)
+A major real issue is lack of shared intent. We propose a lightweight, standardized “intent message”:
+- planned maneuver time window
+- maneuver type/category (e.g., along-track change / radial change)
+- bounded delta-v envelope (range rather than exact values if confidentiality is required)
+- confidence/uncertainty
+- priority class token (if applicable)
+
+Rules:
+- Agents share the minimum needed to avoid conflict, not sensitive mission details.
+- If an object refuses to share, it is treated as non-cooperative (see fallback behavior below).
+
+5.4 Layer 3 — Multi-agent learning (efficiency optimization under constraints)
+The learning layer is trained offline in large-scale simulations:
+- Agents observe partial local state (neighbors, relative geometry, predicted risk).
+- Agents choose actions like:
+  - “maneuver now vs. wait”
+  - “choose corridor A vs. corridor B”
+  - “yield vs. take priority”
+Objective (reward):
+- minimize collision risk (hard constrained by Layer 1)
+- minimize fuel/Δv cost
+- minimize schedule disruption (mission delays)
+- minimize total number of maneuvers (reduce churn)
+
+Crucial: safety constraints
+- Either via constrained RL, shielded RL, or “policy suggestions” that must pass the deterministic safety layer.
+- The learner cannot force unsafe actions.
+
+5.5 Fallback modes (handling failures and adversaries)
+Space is adversarial in the sense of:
+- communication dropouts
+- faulty sensors
+- outdated catalogs
+- non-cooperative or unknown actors
+
+Fallback behaviors:
+- If comms fail: revert to conservative local avoidance with larger margins.
+- If neighbor intent is unknown: assume worst-case feasible maneuver envelope for that class of object.
+- If an object appears non-cooperative or inconsistent: treat as dynamic obstacle; do not rely on coordination.
+
+5.6 Explainability and audit (needed for agency acceptance)
+Every decision outputs:
+- the rule(s) that triggered (e.g., “separation threshold exceeded in 12 minutes”)
+- what intents were received from neighbors
+- why yield/priority applied
+- which candidate maneuvers were considered and discarded
+- a final “reason code” and confidence level
+
+This supports:
+- regulator/agency audits
+- post-incident analysis
+- operator trust
+
+
+6) HOW THIS IS DIFFERENT (NOVELTY CLAIM, CAREFULLY STATED)
+We do not claim “no one has ever studied decentralized satellite coordination.” Research exists on swarm control, distributed planning, and multi-agent methods.
+
+The novelty is the product-level combination and positioning:
+1) Cell-based “traffic zoning” + swarm local rules:
+   - A structured, scalable method to bound coordination complexity.
+2) Safety-first hybrid architecture:
+   - Deterministic swarm safety layer as the baseline guarantee
+   - Learning used for efficiency within safe envelopes (not the safety authority)
+3) Governance + cooperation protocol:
+   - Explicit minimal intent-sharing standard designed for multi-operator reality.
+4) Dual-use commercialization path:
+   - Earth-first deployments that produce revenue and operational evidence
+   - Then progressive space qualification with agencies and operators
+
+In short: it is a practical “STM operating system” concept, not only a control algorithm.
+
+
+7) HOW IT SOLVES THE PROBLEM (WHAT IMPROVES, HOW MUCH, AND WHY)
+We must be honest: exact percentages require real data and evaluation. But we can define what improves and why it should improve.
+
+7.1 What improves
+- Safety:
+  - fewer close approaches due to proactive local coordination
+  - reduced chance of “both parties maneuver incorrectly” through intent negotiation
+- Efficiency:
+  - fewer unnecessary maneuvers (less Δv wasted)
+  - less mission downtime / schedule disruption
+- Scalability:
+  - bounded computation and communication due to cell partitioning
+- Resilience:
+  - no single point of failure; local behavior remains functional under partial outages
+
+7.2 How to quantify (metrics to show judges you’re rigorous)
+In simulation (prototype or future work), measure:
+- Number of predicted high-risk conjunction events
+- Number of actual “near-miss” threshold violations
+- Total Δv (fuel proxy) spent per asset per month
+- Mean delay added to mission tasks due to avoidance
+- Communication overhead per asset (messages per orbit/day)
+- Stability (no oscillatory waves of maneuvers)
+
+7.3 Why it should improve
+- Local coordination reduces reaction time and avoids global bottlenecks.
+- Intent sharing reduces uncertainty and prevents conflicting actions.
+- Learning reduces “overly conservative” behavior that wastes fuel and creates operational churn.
+- Cells prevent the system from exploding in complexity at global scale.
+
+
+8) DUAL-USE BUSINESS PLAN (TERRESTRIAL FIRST, SPACE LATER)
+
+8.1 Terrestrial (revenue early)
+Target markets where swarm traffic control is valuable now:
+- drone fleets (inspection, delivery, emergency response)
+- port/airport ground vehicles and autonomous logistics hubs
+- mining sites and industrial plants with autonomous vehicles/robots
+
+Product:
+- real-time multi-agent coordination engine + simulation environment + analytics
+Value proposition:
+- fewer collisions / less downtime
+- higher throughput (more vehicles safely in the same area)
+- lower energy/fuel usage
+Business model:
+- B2B SaaS for simulation + planning
+- on-prem licensing for safety-critical customers
+- professional services for initial deployments
+
+8.2 Space (space-qualified software path)
+Step 1: sell simulation and “policy sandbox” tools to operators/agencies.
+Step 2: flight demo on a controlled constellation segment or servicing mission.
+Step 3: space-qualified onboard or operator-side STM coordination modules.
+
+Funding sources:
+- Agency programs for demos and technology maturation (CNES/ESA and national programs)
+- Private seed once terrestrial pilots show traction
+Partnerships:
+- scientific labs (validation, publications, credibility)
+- satellite operators (real constraints, pilot opportunities)
+- launch providers / in-orbit service providers (future operational integration)
+
+
+9) HOW TO PRESENT THIS TO JUDGES (PITCH STRATEGY)
+Judges often include engineers, researchers, incubators, corporate innovation leaders, and sometimes investors.
+
+What to emphasize by judge type:
+
+9.1 Agency / space engineers (CNES/ESA-like)
+- Safety-first design: deterministic rules + audit trails
+- Governance readiness: intent protocol, priority classes, cell zoning
+- TRL roadmap: simulation → operator tool → demo mission → certified module
+
+9.2 Investors / CEOs / corporate innovation
+- Earth-first revenue: immediate markets (drones/logistics)
+- Large TAM and cross-industry applicability
+- Clear wedge product: “traffic cell coordination engine” + analytics
+- Moat: protocols + safety layer + simulation training environment + operational data
+
+9.3 Academics / labs
+- Correct framing: partial observability, constrained decision-making
+- Evaluation metrics and simulation methodology
+- Research-to-product story: publishable validation + deployable architecture
+
+9.4 Incubators/accelerators
+- Team capability plan
+- First 6–12 months milestones (pilot, MVP, customer discovery)
+- Partnerships and funding plan
+
+
+10) RISKS AND MITIGATIONS (SHOW DEPTH)
+Risk: operators refuse to share intent.
+- Mitigation: minimal sharing; anonymity options; treat non-cooperative as obstacles; demonstrate value to encourage adoption.
+
+Risk: learned policy behaves unexpectedly.
+- Mitigation: safety shield; deterministic safety layer; extensive simulation; certification process for any onboard usage.
+
+Risk: inaccurate catalogs / sensors create wrong predictions.
+- Mitigation: conservative margins under uncertainty; sensor fusion; probabilistic risk estimates.
+
+Risk: governance and standardization take time.
+- Mitigation: start as an operator-side decision support tool; participate in standards bodies; partner with agencies.
+
+
+11) WHAT A “HACKATHON PROTOTYPE” COULD LOOK LIKE (OPTIONAL BUT HELPFUL)
+Even if the full system takes years, a credible hackathon demo can be:
+- A simulation with 50–200 agents in dynamic cells
+- Toggle modes:
+  - baseline (no coordination)
+  - centralized planner (slow/scales poorly)
+  - decentralized swarm (fast/scales)
+  - hybrid (swarm + learned efficiency suggestions)
+- Show metrics dashboards (collisions avoided, fuel proxy, maneuvers)
+
+The prototype demonstrates feasibility and thinking depth without pretending you solved real-world STM completely.
+
+
+12) ONE-SENTENCE TAGLINE (FOR THE PITCH)
+“Orbital Cells is a safety-first, decentralized space traffic coordination system that lets satellites and orbital vehicles negotiate maneuvers locally—like a self-organizing swarm—so congestion can scale safely, efficiently, and autonomously.”
+
