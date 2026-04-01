@@ -1,0 +1,212 @@
+Orbital Cells — Website Sections & Feature Guide (Detailed)
+==========================================================
+
+Purpose of this file
+--------------------
+This document explains, in plain language, what each section of the Orbital Cells website means,
+what each feature represents, and why it matters (safety, scalability, operations, and judging).
+
+The website is intentionally split into two completely separate views:
+1) Information view: the pitch + narrative (for judges and stakeholders)
+2) 3D View: the interactive demo (for proof-of-concept and “show, don’t tell”)
+
+
+1) INFORMATION VIEW (Pitch + narrative)
+--------------------------------------
+
+1.1 Top bar (brand + navigation)
+- Orbital Cells / “Safety-first decentralized STM”:
+  - Represents the positioning: a coordination layer focused on safety and scalability.
+- Navigation links (Concept / Simulation / Metrics / Dual-use / Roadmap):
+  - Shortcuts for live presentations. Even though the UI is split into views, these anchors
+    map to the “story beats” you’d present in a 3–5 minute pitch.
+- “Launch demo” button:
+  - One-click transition to the 3D View to start the live demonstration.
+
+1.2 View switcher (Information / 3D View)
+- This is the core presentation mechanic:
+  - Information view = talk track, business case, credibility.
+  - 3D View = interactive evidence that the idea behaves plausibly.
+- Why it matters:
+  - Judges often reward clarity: a clean split prevents mixing story text with technical controls.
+
+1.3 Hero section (Concept)
+- “Orchestrating the orbital ballet.”:
+  - Frames the challenge: orbit is becoming “traffic”.
+- The lede paragraph (centralized control can’t scale; decentralized coordination in traffic cells):
+  - The problem: too many satellites/vehicles for manual or fully centralized decision-making.
+  - The proposed solution: local negotiation rules inside dynamic “cells”.
+- Buttons:
+  - “Open live simulation”: jumps you into the live demo quickly.
+  - “See rollout plan”: anchors to the roadmap so it feels like a startup path, not only a toy demo.
+- Pill row (Safety / Scales / Dual-use):
+  - Safety: “hard rules + audit logs” = explainability + safety envelope mindset.
+  - Scales: “local interactions in cells” = decentralized scaling argument.
+  - Dual-use: “Earth fleets → space STM” = near-term revenue story and risk reduction.
+
+1.4 “What you’ll see” panel
+- Baseline / Centralized / Swarm / Hybrid modes:
+  - Shows comparative evaluation: not only “our solution is good”, but why others fail.
+- Dynamic traffic cells with intent sharing:
+  - Represents the protocol concept: vehicles share short “intent” messages when comms allow.
+- Inject a debris event and watch re-routing:
+  - Adds realism: space operations have sudden hazards (debris fragments, avoidance windows).
+- Live metrics + explainability “reason codes”:
+  - Judges love measurable claims. Metrics + reasons communicate safety/efficiency trade-offs.
+- Panel note about “simplified visual twin”:
+  - Honest framing: this is a demo twin, not flight-certified software.
+
+1.5 Dual-use wedge (Business)
+- The point:
+  - Space qualification is expensive and slow; shipping a terrestrial product first funds and validates.
+- Drone corridors:
+  - Same pattern: many agents, local rules, collision avoidance, partial connectivity.
+- Ports & logistics hubs:
+  - Throughput + safety constraints mirror the orbital “traffic cell” idea.
+- Mining & industrial sites:
+  - Harsh environment and intermittent comms are similar constraints to space ops.
+- Why it matters:
+  - Demonstrates commercial thinking + a credible path to adoption (important for startup challenge).
+
+1.6 Rollout roadmap (Credibility)
+- Phase 1 (Earth pilots):
+  - Revenue + real-world operational feedback.
+- Phase 2 (Space sandbox):
+  - Simulation-based evaluation with operators/agencies (policy testing, what-if analysis).
+- Phase 3 (Space qualification):
+  - Certified safety layer + controlled flight demos.
+- Why it matters:
+  - Turns “cool idea” into “deployable plan” with staged risk reduction.
+
+
+2) 3D VIEW (Interactive demo)
+-----------------------------
+
+2.1 Live 3D simulation stage (Earth + rings + satellites)
+- Earth sphere + day/night textures:
+  - Visual anchor: reinforces “orbital environment” realism for audiences.
+- Orbital rings:
+  - Represents multiple “lanes” or shells (different altitude bands).
+  - In the demo: agents can change radius to simulate a lane change / re-phasing maneuver.
+- Satellites (many objects):
+  - Represents dense traffic and the scaling challenge.
+
+2.2 Reason codes (Explainability feed)
+- A scrolling feed that prints short explanations (e.g., separation, hazard avoidance, yielding).
+- What it represents:
+  - “Why did the system do that?” is required in safety-critical autonomy.
+  - A future certified system would have auditable decision logs; this is the demo equivalent.
+- Why it matters:
+  - Judges/operators trust autonomy more when it is explainable and calm (not spammy).
+
+2.3 Scenario & operator
+- Scenario dropdown:
+  - Represents different operating conditions (density, comms issues, protected operations, debris).
+  - Importance: autonomy must generalize across conditions, not just one “happy path”.
+- Operator profile dropdown:
+  - Represents mission risk posture and constraints:
+    - Crewed: conservative, prioritize safety margins.
+    - Standard: balanced.
+    - Experimental: accept higher risk for higher efficiency.
+  - Importance: real operations vary by mission, payload, and human-safety constraints.
+
+2.4 Simulation speed
+- What it does in the demo:
+  - Changes satellite motion speed and the cadence of “decision waves” / reason messages.
+- What it represents:
+  - Real operators may want faster playback for analysis or slower playback for briefings.
+- Why it matters:
+  - Useful for presenting: you can slow down to explain, then speed up to show emergent behavior.
+
+2.5 Mode switch (Baseline / Centralized / Swarm / Hybrid)
+- Baseline:
+  - Represents “no meaningful coordination”.
+  - Use in pitch: shows why doing nothing leads to more close approaches in dense traffic.
+- Centralized:
+  - Represents a single global planner (ground or central authority) with latency or update limits.
+  - Use in pitch: highlights the scaling/latency bottleneck and single-point-of-failure risk.
+- Swarm:
+  - Represents local rules (separation / alignment / cohesion-like behaviors) + local hazard avoidance.
+  - Use in pitch: decentralized scaling, graceful degradation with partial comms.
+- Hybrid:
+  - Represents swarm safety rules + “learned” efficiency suggestions (wait/coordinate when safe).
+  - Use in pitch: safety is rule-based; efficiency improvement is learned in simulation.
+
+2.6 Parameters (What they represent)
+- Object count:
+  - Density / scale of the problem.
+  - Importance: stress test scaling.
+- Sensor noise:
+  - Imperfect state estimation.
+  - Importance: robust autonomy must tolerate uncertainty.
+- Comms reliability:
+  - Probability that intent messages succeed.
+  - Importance: space comms can be intermittent; systems must degrade gracefully.
+- Risk tolerance:
+  - Mission posture. Lower tolerance = larger safety margins (bigger separation).
+  - Importance: autonomy must reflect operator constraints.
+
+2.7 Overlays
+- Show cells:
+  - Visualizes the “traffic cell” partitioning idea (local neighborhoods / sectors).
+  - Importance: explains decentralization: agents reason locally rather than globally.
+- Show intents:
+  - Visualizes intent sharing (short projected motion line).
+  - Importance: shows coordination protocols under comms constraints.
+- Protected zone:
+  - A policy constraint region (e.g., keep-out zone near a station or protected asset).
+  - Importance: demonstrates that autonomy obeys hard constraints, not just “optimize”.
+
+2.8 Actions
+- Inject debris:
+  - Adds a hazard crossing a main orbital lane.
+  - Importance: demonstrates re-routing/avoidance behavior and responsiveness.
+- Disable comms:
+  - Simulates a comms degradation event.
+  - Importance: tests resilience; swarm should keep working even when comms are partial.
+- Reset:
+  - Clears events/metrics and restarts a run.
+  - Importance: enables repeatable demos and A/B comparisons.
+
+2.9 Live metrics (What they represent)
+These are simple, judge-friendly proxies (not flight-dynamics truth):
+- Near-misses:
+  - Proxy for safety risk (frequency of close approaches).
+- Maneuvers:
+  - Proxy for operational burden / control actions.
+- Δv proxy:
+  - Proxy for fuel or propellant cost (maneuver magnitude).
+- Throughput proxy:
+  - Proxy for mission throughput / traffic flow.
+- Message rate:
+  - Proxy for comms load and coordination chatter.
+
+Why metrics matter:
+- Autonomy is always a trade-off: higher safety margins can reduce throughput or raise Δv.
+- Showing these metrics live demonstrates you understand the engineering trade space.
+
+2.10 Run + report (Backend-enabled features)
+- Save run:
+  - Writes the run summary, metric time-series, and events to SQLite.
+  - Importance: enables after-action review and comparisons (like an operator toolkit).
+- Export JSON:
+  - Machine-readable export for analytics dashboards or further processing.
+- Export TXT:
+  - Human-readable report suitable for sharing with judges/operators.
+- Ask AI (Explainability assistant):
+  - Answers questions about a saved run using the stored logs/metrics/events as context.
+  - Importance: helps a human quickly understand “what happened and why” after the fact.
+  - Note: requires OPENAI_API_KEY set in the backend environment.
+
+
+3) How to present this to judges (Suggested talk track)
+-------------------------------------------------------
+1) Start in Information view: state the scaling problem and why central control fails.
+2) Show Dual-use wedge: credibility and revenue path.
+3) Switch to 3D View:
+   - Begin at 1.0× speed (calm reasoning).
+   - Flip modes to compare (Baseline vs Swarm/Hybrid).
+   - Inject debris + optionally disable comms.
+   - Point to reason codes (explainability) and metrics (trade-offs).
+4) Save run + export report to demonstrate “operator workflow” (not just animation).
+
