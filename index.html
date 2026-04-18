@@ -8,7 +8,7 @@
       name="description"
       content="A safety-first, decentralized space traffic coordination concept: orbital traffic cells + swarm rules + learning for efficiency."
     />
-    <link rel="stylesheet" href="./styles.css" />
+    <link rel="stylesheet" href="./styles.css?v=orbit-selection-v3" />
   </head>
   <body>
     <header class="topbar">
@@ -171,11 +171,11 @@
 
         <div class="sim__stage">
           <div class="canvasWrap">
-            <canvas id="scene" aria-label="3D simulation canvas"></canvas>
-            <div class="hud">
-              <div class="hud__title">Reason codes</div>
-              <div class="hud__feed" id="reasonFeed" aria-live="polite"></div>
+            <div class="canvasWrap__toolbar">
+              <div class="canvasBadge" id="simSpeedBadge">Speed 1.00x</div>
+              <button class="btn btn--small btn--ghost" id="toggleExpand3d" type="button">Expand 3D view</button>
             </div>
+            <canvas id="scene" aria-label="3D simulation canvas"></canvas>
           </div>
 
           <aside class="controls" aria-label="Simulation controls">
@@ -206,19 +206,25 @@
             </div>
 
             <div class="controls__section">
-              <div class="controls__h">Parameters</div>
+              <div class="controls__h">Speed</div>
               <div class="field">
                 <label for="simSpeed">Simulation speed</label>
-                <input id="simSpeed" type="range" min="0.25" max="3" step="0.05" value="1" />
+                <input id="simSpeed" type="range" min="0.25" max="4" step="0.05" value="1" />
                 <div class="field__meta">
                   <span id="simSpeedVal">1.00×</span>
                   <span class="subtle">Reason interval: <span id="simReasonInterval">~10s</span></span>
                 </div>
               </div>
+            </div>
+
+            <div class="controls__section">
+              <div class="controls__h">Parameters</div>
               <div class="field">
-                <label for="objectCount">Object count</label>
-                <input id="objectCount" type="range" min="30" max="220" step="10" value="120" />
-                <div class="field__meta"><span id="objectCountVal">120</span></div>
+                <label>Scene inventory</label>
+                <div class="inventoryBox">
+                  <div class="inventoryBox__value" id="sceneInventory">3 satellites + 2 asteroids</div>
+                  <div class="mini">This focused demo keeps the orbital scene fixed so object selection and path prediction stay easy to read.</div>
+                </div>
               </div>
               <div class="field">
                 <label for="sensorNoise">Sensor noise</label>
@@ -263,6 +269,35 @@
             </div>
 
             <div class="controls__section">
+              <div class="controls__h">Object selection</div>
+              <div class="field">
+                <label for="selectedObject">Select body</label>
+                <select id="selectedObject" class="select">
+                  <option value="">Loading…</option>
+                </select>
+              </div>
+              <div class="selectionCard">
+                <div class="selectionCard__title" id="selectedName">No object selected</div>
+                <div class="selectionCard__kind" id="selectedKind">Click a body in the canvas or choose one from the list.</div>
+                <div class="selectionCard__meta">
+                  <div>
+                    <span class="selectionCard__label">Orbit</span>
+                    <span id="selectedOrbit">-</span>
+                  </div>
+                  <div>
+                    <span class="selectionCard__label">Speed</span>
+                    <span id="selectedSpeed">-</span>
+                  </div>
+                </div>
+                <div class="mini" id="selectedHint">A selected object will show its predicted path around Earth.</div>
+                <div class="btnrow selectionCard__actions">
+                  <button class="btn btn--small" id="focusSelected">Focus selected</button>
+                  <button class="btn btn--small btn--ghost" id="clearFocus">Reset camera</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="controls__section">
               <div class="controls__h">Run + report</div>
               <div class="btnrow">
                 <button class="btn btn--small" id="saveRun">Save run</button>
@@ -284,6 +319,19 @@
               <div class="aiBox" id="aiAnswer">Save a run first, then ask a question.</div>
             </div>
           </aside>
+        </div>
+
+        <div class="sim__textPanels">
+          <div class="textPanel">
+            <div class="textPanel__title">Simulation log</div>
+            <div class="textPanel__body hud__feed" id="reasonFeed" aria-live="polite"></div>
+          </div>
+          <div class="textPanel">
+            <div class="textPanel__title">Interaction tips</div>
+            <div class="textPanel__body">
+              Click any satellite or asteroid to preview its path. Satellites show a green circular orbit, while asteroids reveal their random drift path. Use the focus buttons to get a close camera view of the selected object.
+            </div>
+          </div>
         </div>
         </section>
 
@@ -319,7 +367,7 @@
       </div>
     </main>
 
-    <script type="module" src="./app.js"></script>
+    <script type="module" src="./app.js?v=orbit-selection-v3"></script>
   </body>
 </html>
 

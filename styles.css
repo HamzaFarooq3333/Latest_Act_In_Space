@@ -233,26 +233,30 @@ canvas#scene{
   height:100%;
   display:block;
 }
-
-.hud{
+.canvasWrap__toolbar{
   position:absolute;
+  top:14px;
   left:14px;
-  bottom:14px;
-  width:360px;
-  max-width:calc(100% - 28px);
-  border:1px solid var(--line);
-  background: rgba(7,10,18,.55);
-  backdrop-filter: blur(10px);
-  border-radius:14px;
-  padding:10px 10px 8px;
+  right:14px;
+  z-index:3;
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  pointer-events:none;
 }
-.hud__title{
+.canvasWrap__toolbar > *{
+  pointer-events:auto;
+}
+.canvasBadge{
+  display:inline-flex;
+  align-items:center;
+  padding:8px 10px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.14);
+  background: rgba(7,10,18,.62);
+  color:rgba(255,255,255,.88);
   font-family:var(--mono);
   font-size:12px;
-  letter-spacing:.06em;
-  text-transform:uppercase;
-  color:rgba(255,255,255,.70);
-  margin-bottom:6px;
 }
 .hud__feed{
   font-family:var(--mono);
@@ -300,6 +304,17 @@ canvas#scene{
 .field{ margin-top:10px; }
 .field label{ display:flex; justify-content:space-between; font-size:13px; color:rgba(255,255,255,.80); }
 .field input[type="range"]{ width:100%; margin-top:8px; }
+.inventoryBox{
+  margin-top:8px;
+  padding:12px;
+  border-radius:12px;
+  border:1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.03);
+}
+.inventoryBox__value{
+  font-weight:900;
+  color:rgba(255,255,255,.92);
+}
 .select{
   width:100%;
   margin-top:8px;
@@ -365,6 +380,85 @@ canvas#scene{
 .check input{ accent-color: var(--accent); }
 
 .btnrow{ display:flex; gap:8px; flex-wrap:wrap; }
+
+.selectionCard{
+  margin-top:12px;
+  padding:12px;
+  border-radius:14px;
+  border:1px solid rgba(255,255,255,.12);
+  background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+}
+.selectionCard__title{
+  font-weight:900;
+  color:rgba(255,255,255,.94);
+}
+.selectionCard__kind{
+  margin-top:4px;
+  color:rgba(255,255,255,.74);
+  font-size:13px;
+}
+.selectionCard__meta{
+  margin-top:10px;
+  display:grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap:8px;
+}
+.selectionCard__meta > div{
+  padding:8px 10px;
+  border-radius:12px;
+  border:1px solid rgba(255,255,255,.08);
+  background: rgba(0,0,0,.12);
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+}
+.selectionCard__label{
+  font-family:var(--mono);
+  font-size:11px;
+  color:rgba(255,255,255,.58);
+  text-transform:uppercase;
+  letter-spacing:.06em;
+}
+.selectionCard__actions{
+  margin-top:12px;
+}
+
+.sim__textPanels{
+  max-width:var(--max);
+  margin:14px auto 0;
+  display:grid;
+  grid-template-columns: 1.3fr .7fr;
+  gap:12px;
+}
+.sim.is-expanded .sim__stage{
+  grid-template-columns: 1fr;
+}
+.sim.is-expanded .canvasWrap{
+  height:78vh;
+}
+.sim.is-expanded .controls{
+  margin-top:12px;
+}
+.textPanel{
+  border:1px solid var(--line);
+  border-radius:16px;
+  background: rgba(255,255,255,.03);
+  padding:12px;
+}
+.textPanel__title{
+  font-family:var(--mono);
+  font-size:12px;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+  color:rgba(255,255,255,.7);
+  margin-bottom:8px;
+}
+.textPanel__body{
+  color:rgba(255,255,255,.8);
+  font-size:13px;
+  line-height:1.55;
+  min-height:84px;
+}
 
 .metrics{ padding:18px 18px 10px; }
 .sectionHead{
@@ -461,6 +555,7 @@ canvas#scene{
 @media (max-width: 980px){
   .hero__grid{ grid-template-columns: 1fr; }
   .sim__stage{ grid-template-columns: 1fr; }
+  .sim__textPanels{ grid-template-columns: 1fr; }
   .metricGrid{ grid-template-columns: repeat(2, 1fr); }
   .cardGrid{ grid-template-columns: 1fr; }
   .steps{ grid-template-columns: 1fr; }

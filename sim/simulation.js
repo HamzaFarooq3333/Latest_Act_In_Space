@@ -1,6 +1,8 @@
-import { createThreeScene } from "./threeScene.js";
+import { createThreeScene } from "./threeScene.js?v=orbit-selection-v3";
 
 const MODES = ["baseline", "centralized", "swarm", "hybrid"];
+const SATELLITE_COUNT = 3;
+const ASTEROID_COUNT = 2;
 
 function clamp(v, a, b) {
   return Math.max(a, Math.min(b, v));
@@ -10,17 +12,32 @@ function rand(a, b) {
   return a + Math.random() * (b - a);
 }
 
-function choice(arr) {
-  return arr[Math.floor(Math.random() * arr.length)];
-}
-
 function nowSeconds() {
   return performance.now() / 1000;
 }
 
-function fmtReason({ t, id, code, detail }) {
-  const ts = `${t.toFixed(1)}s`;
-  return `[${ts}] SAT-${String(id).padStart(3, "0")} · ${code} · ${detail}`;
+function lerp(a, b, t) {
+  return a + (b - a) * t;
+}
+
+function lerpPoint(a, b, t) {
+  return {
+    x: lerp(a.x, b.x, t),
+    y: lerp(a.y, b.y, t),
+    z: lerp(a.z, b.z, t),
+  };
+}
+
+function angleOnXZ(pos) {
+  return Math.atan2(pos.z, pos.x);
+}
+
+function ringPos(radius, angle, inc = 0) {
+  const x = radius * Math.cos(angle);
+  const z = radius * Math.sin(angle);
+  const y = z * Math.sin(inc);
+  const zz = z * Math.cos(inc);
+  return { x, y, z: zz };
 }
 
 function computeCellIndex(angle, sectors) {
@@ -37,52 +54,68 @@ function dist2(a, b) {
   return dx * dx + dy * dy + dz * dz;
 }
 
-function vecLen(v) {
-  return Math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
+function sampleLoopPath(points, progress) {
+  if (!points?.length) return { x: 0, y: 0, z: 0 };
+  const wrapped = ((progress % 1) + 1) % 1;
+  const scaled = wrapped * points.length;
+  const idx = Math.floor(scaled) % points.length;
+  const nextIdx = (idx + 1) % points.length;
+  return lerpPoint(points[idx], points[nextIdx], scaled - Math.floor(scaled));
 }
 
-function normalize(v) {
-  const L = vecLen(v) || 1;
-  return { x: v.x / L, y: v.y / L, z: v.z / L };
+function buildCircularOrbitPoints(radius, inc, steps = 84) {
+  const points = [];
+  for (let i = 0; i <= steps; i++) {
+    const angle = (i / steps) * Math.PI * 2;
+    points.push(ringPos(radius, angle, inc));
+  }
+  return points;
 }
 
-function add(a, b) {
-  return { x: a.x + b.x, y: a.y + b.y, z: a.z + b.z };
+function buildRandomAsteroidPath(baseRadius, altitudeBias, yBias) {
+  const points = [];
+  const pointCount = 7;
+  for (let i = 0; i < pointCount; i++) {
+    const angle = (i / pointCount) * Math.PI * 2 + rand(-0.25, 0.25);
+    const radius = baseRadius + rand(-11, 11) + altitudeBias;
+    points.push({
+      x: Math.cos(angle) * radius,
+      y: yBias + rand(-10, 10),
+      z: Math.sin(angle) * (radius + rand(-8, 8)),
+    });
+  }
+  return points;
 }
 
-function sub(a, b) {
-  return { x: a.x - b.x, y: a.y - b.y, z: a.z - b.z };
+function fmtReason({ t, label, code, detail }) {
+  const ts = `${t.toFixed(1)}s`;
+  return `[${ts}] ${label} · ${code} · ${detail}`;
 }
 
-function mul(v, s) {
-  return { x: v.x * s, y: v.y * s, z: v.z * s };
+function orbitLabel(obj, world) {
+  if (obj.kind === "asteroid") return "Random drift path";
+  if (Math.abs(obj.radius - world.ringRadius2) < 4) return "Inner orbit";
+  if (Math.abs(obj.radius - world.ringRadius) < 4) return "Primary orbit";
+  if (Math.abs(obj.radius - world.ringRadius3) < 4) return "Outer orbit";
+  return "Transfer orbit";
 }
 
-function angleOnXZ(pos) {
-  return Math.atan2(pos.z, pos.x);
+function buildObjectLabel(obj) {
+  return obj.kind === "satellite" ? `SAT-${String(obj.id).padStart(3, "0")}` : `AST-${String(obj.id).padStart(3, "0")}`;
 }
 
-function ringPos(radius, angle, inc = 0) {
-  // Simple inclination: rotate around X axis
-  const x = radius * Math.cos(angle);
-  const z = radius * Math.sin(angle);
-  const y = z * Math.sin(inc);
-  const zz = z * Math.cos(inc);
-  return { x, y, z: zz };
-}
-
-function lerp(a, b, t) {
-  return a + (b - a) * t;
-}
-
-export function createApp({ canvas, onReasonLine, onMetrics }) {
-  const scene = createThreeScene({ canvas });
+export function createApp({ canvas, onReasonLine, onMetrics, onSelectionChange }) {
+  const scene = createThreeScene({
+    canvas,
+    onObjectSelect: (id) => selectObject(id),
+  });
 
   let running = false;
   let mode = "swarm";
   let speedMult = 1;
   let params = {
-    objectCount: 120,
+    satelliteCount: SATELLITE_COUNT,
+    asteroidCount: ASTEROID_COUNT,
     sensorNoise: 0.15,
     commsReliability: 0.85,
     riskTolerance: 0.35,
@@ -99,7 +132,8 @@ export function createApp({ canvas, onReasonLine, onMetrics }) {
     ringRadius3: 70,
     protected: { enabled: true, centerAngle: 1.2, width: 0.5, radius: 55 },
     debris: null,
-    agents: [],
+    objects: [],
+    positions: [],
     metrics: {
       nearMisses: 0,
       maneuvers: 0,
@@ -110,40 +144,28 @@ export function createApp({ canvas, onReasonLine, onMetrics }) {
       _lastMsgT: 0,
     },
     intentLines: [],
+    impactMarkers: [],
     events: [],
     metricSeries: [],
     logicAccum: 0,
     lastReasonAt: -1e9,
+    selectedId: null,
+    focusedId: null,
   };
 
-  const baseTimeScale = 0.06; // motion scale at 1.0x
-  const baseLogicIntervalSec = 10; // target: about 1 decision/log wave every 10 seconds at 1.0x
+  const baseTimeScale = 0.09;
+  const baseLogicIntervalSec = 10;
 
   function effectiveLogicIntervalSec() {
-    // Higher speed => more frequent decisions/logs in wall-clock time
     return baseLogicIntervalSec / speedMult;
   }
 
-  function setSpeed(next) {
-    const v = clamp(Number(next) || 1, 0.25, 3);
-    speedMult = v;
-    pushEvent("speed_set", { speedMult: v });
-  }
-
-  function logReason(obj) {
-    if (!onReasonLine) return;
-    const t = time();
-    // Keep reason feed calm: only one message per ~10s (except mode/event/reset)
-    const allowBurstCodes = new Set(["MODE", "EVENT"]);
-    const interval = effectiveLogicIntervalSec();
-    if (!allowBurstCodes.has(obj.code) && t - world.lastReasonAt < interval) return;
-    world.lastReasonAt = t;
-    onReasonLine(fmtReason(obj));
+  function time() {
+    return nowSeconds() - world.t0;
   }
 
   function pushEvent(type, detail = {}) {
     world.events.push({ t: time(), type, detail });
-    // keep bounded
     if (world.events.length > 200) world.events.shift();
   }
 
@@ -157,15 +179,143 @@ export function createApp({ canvas, onReasonLine, onMetrics }) {
     world.metrics._lastMsgT = nowSeconds();
   }
 
+  function logReason(obj) {
+    if (!onReasonLine) return;
+    const allowBurstCodes = new Set(["MODE", "EVENT", "SELECT", "FOCUS"]);
+    const interval = effectiveLogicIntervalSec();
+    if (!allowBurstCodes.has(obj.code) && time() - world.lastReasonAt < interval) return;
+    world.lastReasonAt = time();
+    onReasonLine(fmtReason(obj));
+  }
+
+  function getObjectById(id) {
+    return world.objects.find((obj) => obj.id === id) || null;
+  }
+
+  function getSelectionSummary(obj) {
+    if (!obj) return null;
+    return {
+      id: obj.id,
+      kind: obj.kind,
+      name: buildObjectLabel(obj),
+      title: obj.name,
+      orbitLabel: orbitLabel(obj, world),
+      radius: obj.radius,
+      speed: obj.speed * (obj.speedFactor ?? 1),
+      baseSpeed: obj.speed,
+      focused: world.focusedId === obj.id,
+      description: obj.description,
+    };
+  }
+
+  function listObjects() {
+    return world.objects.map((obj) => getSelectionSummary(obj));
+  }
+
+  function buildPredictedPath(obj) {
+    if (!obj) return [];
+    if (obj.kind === "satellite") {
+      return buildCircularOrbitPoints(obj.radius, obj.inc, 90);
+    }
+
+    const points = [];
+    for (let i = 0; i <= 96; i++) {
+      const progress = obj.pathProgress + (i / 96) * 0.85;
+      points.push(sampleLoopPath(obj.pathPoints, progress));
+    }
+    return points;
+  }
+
+  function buildSatelliteOrbitPaths() {
+    return world.objects
+      .filter((obj) => obj.kind === "satellite")
+      .map((obj) => ({
+        id: obj.id,
+        points: buildCircularOrbitPoints(obj.radius, obj.inc, 72),
+      }));
+  }
+
+  function updateSelectionVisuals() {
+    const selected = getObjectById(world.selectedId);
+    scene.setSelectedObject(world.selectedId);
+    scene.setSatelliteOrbits(buildSatelliteOrbitPaths(), { selectedId: world.selectedId });
+    scene.setImpactMarkers(world.impactMarkers);
+    scene.setPredictedPath(selected ? buildPredictedPath(selected) : [], { kind: selected?.kind || null });
+    scene.setCameraFocus(world.focusedId);
+  }
+
+  function emitSelectionChange() {
+    onSelectionChange?.({
+      selected: getSelectionSummary(getObjectById(world.selectedId)),
+      objects: listObjects(),
+      focusedId: world.focusedId,
+      speedMult,
+    });
+  }
+
+  function focusSelected() {
+    if (!world.selectedId) return;
+    world.focusedId = world.selectedId;
+    scene.setCameraFocus(world.focusedId);
+    const obj = getObjectById(world.focusedId);
+    if (obj) {
+      logReason({
+        t: time(),
+        label: buildObjectLabel(obj),
+        code: "FOCUS",
+        detail: "close_view_enabled",
+      });
+    }
+    emitSelectionChange();
+  }
+
+  function clearFocus() {
+    world.focusedId = null;
+    scene.clearCameraFocus();
+    emitSelectionChange();
+  }
+
+  function selectObject(id) {
+    world.selectedId = Number.isFinite(Number(id)) ? Number(id) : null;
+    if (world.focusedId && world.focusedId !== world.selectedId) {
+      world.focusedId = null;
+      scene.clearCameraFocus();
+    }
+    const selected = getObjectById(world.selectedId);
+    updateSelectionVisuals();
+    emitSelectionChange();
+    if (selected) {
+      logReason({
+        t: time(),
+        label: buildObjectLabel(selected),
+        code: "SELECT",
+        detail: selected.kind === "satellite" ? "showing_circular_orbit_path" : "showing_random_path_prediction",
+      });
+    }
+  }
+
+  function setSpeed(next) {
+    const v = clamp(Number(next) || 1, 0.25, 4);
+    speedMult = v;
+    pushEvent("speed_set", { speedMult: v });
+    emitSelectionChange();
+  }
+
   function setMode(next) {
     if (!MODES.includes(next)) return;
     mode = next;
-    logReason({ t: time(), id: 0, code: "MODE", detail: `switched_to=${next}` });
+    logReason({ t: time(), label: "SYSTEM", code: "MODE", detail: `switched_to=${next}` });
     pushEvent("mode_switch", { mode: next });
   }
 
   function setParams(next) {
-    params = { ...params, ...next, overlays: { ...params.overlays, ...(next.overlays || {}) } };
+    params = {
+      ...params,
+      ...next,
+      satelliteCount: SATELLITE_COUNT,
+      asteroidCount: ASTEROID_COUNT,
+      overlays: { ...params.overlays, ...(next.overlays || {}) },
+    };
     world.protected.enabled = Boolean(params.overlays.protectedZone);
     scene.setCellsOverlay({
       enabled: Boolean(params.overlays.showCells),
@@ -174,70 +324,6 @@ export function createApp({ canvas, onReasonLine, onMetrics }) {
       color: 0x6df2d8,
     });
     scene.setOverlaysVisible({ showCells: params.overlays.showCells, showIntents: params.overlays.showIntents });
-  }
-
-  function time() {
-    return nowSeconds() - world.t0;
-  }
-
-  function initAgents(n) {
-    world.agents = [];
-    const rings = [world.ringRadius2, world.ringRadius, world.ringRadius3];
-    for (let i = 0; i < n; i++) {
-      const radius = choice(rings);
-      const baseSpeed = radius === world.ringRadius ? 0.42 : radius === world.ringRadius2 ? 0.52 : 0.36;
-      const angle = rand(0, Math.PI * 2);
-      const inc = rand(-0.18, 0.18);
-      const priority = Math.random() < 0.06 ? "high" : "standard";
-      const a = {
-        id: i + 1,
-        radius,
-        baseRadius: radius,
-        angle,
-        inc,
-        speed: baseSpeed * rand(0.92, 1.08),
-        targetRadius: radius,
-        cooldown: 0,
-        priority,
-        // “intent” is a short-lived plan line
-        intent: null,
-        // internal
-        _phase: rand(0, 10),
-      };
-      world.agents.push(a);
-    }
-  }
-
-  function injectDebris() {
-    // A drifting debris arc crossing the main ring near a random sector
-    const sector = Math.floor(rand(0, world.sectors));
-    const centerAngle = ((sector + 0.35) / world.sectors) * Math.PI * 2;
-    world.debris = {
-      centerAngle,
-      width: 0.42,
-      radius: world.ringRadius,
-      tStart: time(),
-      ttl: 30,
-    };
-    logReason({ t: time(), id: 0, code: "EVENT", detail: `debris_in_cell=${sector}` });
-    pushEvent("debris_injected", { sector, centerAngle, width: world.debris.width, radius: world.debris.radius });
-  }
-
-  function reset(nextParams) {
-    world.t0 = nowSeconds();
-    world.lastT = nowSeconds();
-    world.tick = 0;
-    world.debris = null;
-    world.intentLines = [];
-    world.events = [];
-    world.metricSeries = [];
-    resetMetrics();
-
-    setParams(nextParams || params);
-    scene.setSatelliteCount(params.objectCount);
-    initAgents(params.objectCount);
-    running = true;
-    pushEvent("reset", { objectCount: params.objectCount });
   }
 
   function shouldSendMessage() {
@@ -269,159 +355,285 @@ export function createApp({ canvas, onReasonLine, onMetrics }) {
     if (!d) return false;
     const alive = time() - d.tStart < d.ttl;
     if (!alive) return false;
-    if (Math.abs(radius - d.radius) > 6) return false;
+    if (Math.abs(radius - d.radius) > 7) return false;
     const da = Math.atan2(Math.sin(angle - d.centerAngle), Math.cos(angle - d.centerAngle));
     return Math.abs(da) < d.width;
   }
 
-  function nearestNeighbors(agent, positions, maxN = 8) {
-    const me = positions[agent.id - 1];
+  function nearestObjects(agent, positions, maxN = 6) {
+    const me = positions[agent._index];
     const arr = [];
-    for (let i = 0; i < world.agents.length; i++) {
-      if (i === agent.id - 1) continue;
-      const p = positions[i];
-      const d2 = dist2(me, p);
-      arr.push({ idx: i, d2 });
+    for (const other of world.objects) {
+      if (other.id === agent.id) continue;
+      arr.push({ object: other, d2: dist2(me, positions[other._index]) });
     }
     arr.sort((a, b) => a.d2 - b.d2);
     return arr.slice(0, maxN);
   }
 
-  function step(dt) {
-    const n = world.agents.length;
-    const positions = new Array(n);
-
-    // Base motion
-    for (const a of world.agents) {
-      a.angle += a.speed * dt * (baseTimeScale * speedMult);
-      a._phase += dt;
-      // mild station-keeping wobble
-      const wobble = Math.sin(a._phase * 0.9) * 0.12;
-      const wobble2 = Math.cos(a._phase * 0.6) * 0.08;
-      const r = a.radius + wobble;
-      positions[a.id - 1] = ringPos(r, a.angle + wobble2, a.inc);
+  function predictAsteroidConflict(satellite, asteroid, horizonSec = 18, samples = 18) {
+    let best = { minD2: Infinity, timeToClosest: 0 };
+    for (let i = 1; i <= samples; i++) {
+      const future = (horizonSec / samples) * i;
+      const satAngle = satellite.angle + satellite.speed * (satellite.speedFactor ?? 1) * future * (baseTimeScale * speedMult);
+      const satPos = ringPos(satellite.radius, satAngle, satellite.inc);
+      const asteroidProgress = asteroid.pathProgress + asteroid.speed * future * (baseTimeScale * speedMult);
+      const asteroidPos = sampleLoopPath(asteroid.pathPoints, asteroidProgress);
+      const d2 = dist2(satPos, asteroidPos);
+      if (d2 < best.minD2) {
+        best = { minD2: d2, timeToClosest: future };
+      }
     }
+    return {
+      asteroid,
+      minDistance: Math.sqrt(best.minD2),
+      timeToClosest: best.timeToClosest,
+    };
+  }
 
-    // Logic updates are intentionally slow (about once per 10s)
+  function initObjects() {
+    const configs = [
+      {
+        id: 101,
+        kind: "satellite",
+        name: "Sentinel One",
+        description: "Earth observation satellite on the inner orbit.",
+        radius: world.ringRadius2,
+        angle: 0.25,
+        inc: 0.06,
+        speed: 0.52,
+        priority: "high",
+      },
+      {
+        id: 102,
+        kind: "satellite",
+        name: "Relay Two",
+        description: "Communications satellite on the primary orbit.",
+        radius: world.ringRadius,
+        angle: 2.1,
+        inc: -0.08,
+        speed: 0.42,
+        priority: "standard",
+      },
+      {
+        id: 103,
+        kind: "satellite",
+        name: "Mapper Three",
+        description: "Survey satellite on the outer orbit.",
+        radius: world.ringRadius3,
+        angle: 4.25,
+        inc: 0.12,
+        speed: 0.36,
+        priority: "standard",
+      },
+      {
+        id: 201,
+        kind: "asteroid",
+        name: "Aster Drift",
+        description: "Random drifting asteroid with a non-circular prediction path.",
+        radius: 49,
+        speed: 0.16,
+        priority: "hazard",
+        pathPoints: buildRandomAsteroidPath(48, -2, 3),
+        pathProgress: rand(0.1, 0.6),
+      },
+      {
+        id: 202,
+        kind: "asteroid",
+        name: "Borealis Rock",
+        description: "Fast-moving asteroid on a second random path.",
+        radius: 63,
+        speed: 0.12,
+        priority: "hazard",
+        pathPoints: buildRandomAsteroidPath(63, 4, -4),
+        pathProgress: rand(0.2, 0.9),
+      },
+    ];
+
+    world.objects = configs.map((cfg, idx) => ({
+      ...cfg,
+      baseRadius: cfg.radius,
+      cooldown: 0,
+      _phase: rand(0, 10),
+      _index: idx,
+      speedFactor: cfg.kind === "satellite" ? 1 : undefined,
+      slowTimer: 0,
+    }));
+    world.selectedId = world.objects.find((obj) => obj.kind === "satellite")?.id ?? world.objects[0]?.id ?? null;
+    world.focusedId = null;
+  }
+
+  function injectDebris() {
+    const sector = Math.floor(rand(0, world.sectors));
+    const centerAngle = ((sector + 0.35) / world.sectors) * Math.PI * 2;
+    world.debris = {
+      centerAngle,
+      width: 0.42,
+      radius: world.ringRadius,
+      tStart: time(),
+      ttl: 30,
+    };
+    logReason({ t: time(), label: "SYSTEM", code: "EVENT", detail: `debris_in_cell=${sector}` });
+    pushEvent("debris_injected", { sector, centerAngle, width: world.debris.width, radius: world.debris.radius });
+  }
+
+  function reset(nextParams) {
+    world.t0 = nowSeconds();
+    world.lastT = nowSeconds();
+    world.tick = 0;
+    world.debris = null;
+    world.intentLines = [];
+    world.impactMarkers = [];
+    world.events = [];
+    world.metricSeries = [];
+    world.logicAccum = 0;
+    resetMetrics();
+
+    setParams(nextParams || params);
+    initObjects();
+    running = true;
+    pushEvent("reset", {
+      satelliteCount: SATELLITE_COUNT,
+      asteroidCount: ASTEROID_COUNT,
+      sensorNoise: params.sensorNoise,
+      commsReliability: params.commsReliability,
+      riskTolerance: params.riskTolerance,
+      speedMult,
+    });
+    updateSelectionVisuals();
+    emitSelectionChange();
+  }
+
+  function step(dt) {
+    const positions = new Array(world.objects.length);
+    for (const obj of world.objects) {
+      obj._phase += dt;
+      if (obj.kind === "satellite") {
+        if (obj.slowTimer > 0) {
+          obj.slowTimer = Math.max(0, obj.slowTimer - dt);
+          if (obj.slowTimer === 0) obj.speedFactor = 1;
+        }
+        obj.angle += obj.speed * (obj.speedFactor ?? 1) * dt * (baseTimeScale * speedMult);
+        positions[obj._index] = ringPos(obj.radius, obj.angle, obj.inc);
+      } else {
+        obj.pathProgress = (obj.pathProgress + obj.speed * dt * (baseTimeScale * speedMult)) % 1;
+        positions[obj._index] = sampleLoopPath(obj.pathPoints, obj.pathProgress);
+      }
+    }
+    world.positions = positions;
+
     world.logicAccum += dt;
     world.intentLines = [];
+    world.impactMarkers = [];
     const interval = effectiveLogicIntervalSec();
     if (world.logicAccum >= interval) {
       world.logicAccum = 0;
-
-      // Overlays: cell boundaries, protected zone and debris are “policy constraints”
-      // Coordination decisions are simplified: satellites can temporarily change radius to “lane change”.
-      const minSep = lerp(2.2, 3.4, 1 - params.riskTolerance); // lower riskTolerance => larger separation
+      const minSep = lerp(2.2, 3.4, 1 - params.riskTolerance);
       const minSep2 = minSep * minSep;
 
-      // Conflict detection + coordination
-      for (const a of world.agents) {
-        if (a.cooldown > 0) a.cooldown -= interval;
+      for (const obj of world.objects) {
+        if (obj.kind !== "satellite") continue;
+        if (obj.cooldown > 0) obj.cooldown -= interval;
 
-        const myPos = positions[a.id - 1];
+        const myPos = positions[obj._index];
         const myAngle = angleOnXZ(myPos);
         const myCell = computeCellIndex(myAngle, world.sectors);
+        const near = nearestObjects(obj, positions, 5);
+        const asteroidWarnings = near
+          .filter((entry) => entry.object.kind === "asteroid")
+          .map((entry) => predictAsteroidConflict(obj, entry.object))
+          .sort((a, b) => a.minDistance - b.minDistance);
+        const asteroidThreat = asteroidWarnings.find((entry) => entry.minDistance < 8.5 && entry.timeToClosest < 16) || null;
+        if (asteroidThreat) {
+          const futureAngle =
+            obj.angle + obj.speed * (obj.speedFactor ?? 1) * asteroidThreat.timeToClosest * (baseTimeScale * speedMult);
+          const warningPos = ringPos(obj.radius, futureAngle, obj.inc);
+          world.impactMarkers.push({
+            id: `${obj.id}-${asteroidThreat.asteroid.id}`,
+            satelliteId: obj.id,
+            asteroidId: asteroidThreat.asteroid.id,
+            position: warningPos,
+          });
+        }
 
-        const near = nearestNeighbors(a, positions, 7);
         let tooClose = null;
         for (const nb of near) {
-          if (nb.d2 < minSep2) {
+          const scaledMinSep2 = nb.object.kind === "asteroid" ? minSep2 * 2.5 : minSep2;
+          if (nb.d2 < scaledMinSep2) {
             tooClose = nb;
             break;
           }
         }
 
-        const hazard = inProtectedZone(myAngle) || inDebris(myAngle, a.radius);
-
-        // Baseline: do nothing special
+        const hazard = inProtectedZone(myAngle) || inDebris(myAngle, obj.radius);
         if (mode === "baseline") {
-          if (tooClose && Math.random() < 0.04) world.metrics.nearMisses++;
+          if ((tooClose || hazard || asteroidThreat) && Math.random() < 0.08) world.metrics.nearMisses++;
           continue;
         }
 
-        // Centralized: pretend there is a global planner with latency (slower reaction)
-        if (mode === "centralized") {
-          if (world.tick % 14 !== 0) {
-            if (tooClose && Math.random() < 0.06) world.metrics.nearMisses++;
-            continue;
-          }
+        if (mode === "centralized" && world.tick % 14 !== 0) {
+          if ((tooClose || hazard || asteroidThreat) && Math.random() < 0.09) world.metrics.nearMisses++;
+          continue;
         }
 
-        // Swarm/Hybrid: local rules + (hybrid) efficiency suggestion
-        if ((tooClose || hazard) && a.cooldown <= 0) {
+        if ((tooClose || hazard || asteroidThreat) && obj.cooldown <= 0) {
           const shouldYield =
-            a.priority !== "high" && (tooClose ? world.agents[tooClose.idx].priority === "high" : false);
-
-          // Intent message (if comms work)
+            obj.priority !== "high" && tooClose?.object?.kind === "satellite" && tooClose.object.priority === "high";
           const msgOk = shouldSendMessage();
           if (msgOk) bumpMsgCount();
 
-          // Choose a lane change (radius) to increase separation
-          const laneUp = a.radius < world.ringRadius3 - 1 ? a.radius + 13 : a.radius - 13;
-          const laneDown = a.radius > world.ringRadius2 + 1 ? a.radius - 13 : a.radius + 13;
-          let nextRadius = a.radius;
-
-          // Simple rule: if protected zone or debris, get out of main ring; if conflict, split directions
-          if (hazard) {
-            nextRadius = a.radius === world.ringRadius ? laneUp : a.radius; // move away from station ring
-          } else if (tooClose) {
-            // if yield, prefer a smaller maneuver (stay) otherwise lane change
-            nextRadius = shouldYield ? a.radius : (Math.random() < 0.5 ? laneUp : laneDown);
-          }
-
-          // Hybrid “efficiency suggestion”: avoid maneuver if comms are good and separation is barely violated
-          if (mode === "hybrid" && tooClose && msgOk) {
-            const d = Math.sqrt(tooClose.d2);
-            if (d > minSep * 0.9) {
-              // “learned” suggestion: wait and coordinate
-              nextRadius = a.radius;
-              logReason({ t: time(), id: a.id, code: "HYBRID_WAIT", detail: `cell=${myCell} d=${d.toFixed(2)}` });
+          if (asteroidThreat) {
+            if ((obj.speedFactor ?? 1) >= 0.99) {
+              obj.speedFactor = mode === "hybrid" ? 0.5 : 0.62;
+              obj.slowTimer = 8;
+              obj.cooldown = 1.6;
+              world.metrics.maneuvers++;
+              world.metrics.deltaV += 0.35;
+              logReason({
+                t: time(),
+                label: `${buildObjectLabel(obj)} (${obj.name})`,
+                code: "SPEED_REDUCTION",
+                detail: `reduced speed to avoid impact with ${asteroidThreat.asteroid.name}`,
+              });
+              pushEvent("speed_reduction", {
+                satelliteId: obj.id,
+                satelliteName: obj.name,
+                asteroidId: asteroidThreat.asteroid.id,
+                asteroidName: asteroidThreat.asteroid.name,
+                minDistance: asteroidThreat.minDistance,
+                timeToClosest: asteroidThreat.timeToClosest,
+              });
             }
-          }
-
-          if (nextRadius !== a.radius) {
-            a.radius = nextRadius;
-            a.cooldown = 1.2;
-            world.metrics.maneuvers++;
-            world.metrics.deltaV += Math.abs(nextRadius - a.baseRadius) * 0.05;
-
-            const code = hazard ? "AVOID_HAZARD" : "SEPARATION";
-            const detail = hazard
-              ? `reroute cell=${myCell} protected=${inProtectedZone(myAngle)} debris=${inDebris(myAngle, a.radius)}`
-              : `lane_change cell=${myCell} minSep=${minSep.toFixed(1)}`;
-            logReason({ t: time(), id: a.id, code, detail });
-
             if (params.overlays.showIntents && msgOk) {
               world.intentLines.push({
                 a: myPos,
-                b: ringPos(nextRadius, a.angle + 0.25, a.inc),
+                b: ringPos(obj.radius, obj.angle + 0.18, obj.inc),
               });
             }
-          } else if (tooClose) {
-            // no maneuver but close approach exists -> count as near-miss occasionally (demo proxy)
-            if (Math.random() < 0.16) world.metrics.nearMisses++;
+          } else if (tooClose && Math.random() < 0.18) {
             if (shouldYield) {
               logReason({
                 t: time(),
-                id: a.id,
+                label: `${buildObjectLabel(obj)} (${obj.name})`,
                 code: "YIELD",
-                detail: `to=SAT-${String(tooClose.idx + 1).padStart(3, "0")} cell=${myCell}`,
+                detail: `holding speed for ${tooClose.object.name} in cell=${myCell}`,
               });
             }
+            world.metrics.nearMisses++;
+          } else if (hazard && Math.random() < 0.1) {
+            world.metrics.nearMisses++;
           }
         }
       }
 
-      // Throughput proxy: count how many agents pass a “checkpoint” sector
       const checkpointCell = 2;
-      for (const a of world.agents) {
-        const p = positions[a.id - 1];
-        const c = computeCellIndex(angleOnXZ(p), world.sectors);
-        if (c === checkpointCell && Math.random() < 0.012) world.metrics.throughput++;
+      for (const obj of world.objects) {
+        if (obj.kind !== "satellite") continue;
+        const c = computeCellIndex(angleOnXZ(positions[obj._index]), world.sectors);
+        if (c === checkpointCell && Math.random() < 0.04) world.metrics.throughput++;
       }
     }
 
-    // Render
     scene.setCellsOverlay({
       enabled: Boolean(params.overlays.showCells),
       ringRadius: world.ringRadius,
@@ -429,7 +641,16 @@ export function createApp({ canvas, onReasonLine, onMetrics }) {
       color: 0x6df2d8,
     });
     scene.setIntentLines(world.intentLines, { enabled: Boolean(params.overlays.showIntents) });
-    scene.setSatelliteTransforms(positions);
+    scene.setBodies(
+      world.objects.map((obj) => ({
+        id: obj.id,
+        kind: obj.kind,
+        position: positions[obj._index],
+        selected: world.selectedId === obj.id,
+        spin: obj._phase,
+      }))
+    );
+    updateSelectionVisuals();
 
     updateMsgRate();
     onMetrics?.(world.metrics);
@@ -442,7 +663,6 @@ export function createApp({ canvas, onReasonLine, onMetrics }) {
       msgRate: world.metrics.msgRate,
     });
     if (world.metricSeries.length > 600) world.metricSeries.shift();
-
     world.tick++;
   }
 
@@ -456,7 +676,6 @@ export function createApp({ canvas, onReasonLine, onMetrics }) {
     requestAnimationFrame(loop);
   }
 
-  // Start loop
   running = true;
   requestAnimationFrame(loop);
 
@@ -466,9 +685,24 @@ export function createApp({ canvas, onReasonLine, onMetrics }) {
     setSpeed,
     reset,
     injectDebris,
+    selectObject,
+    focusSelected,
+    clearFocus,
+    getSelectionState: () => ({
+      selected: getSelectionSummary(getObjectById(world.selectedId)),
+      objects: listObjects(),
+      focusedId: world.focusedId,
+      speedMult,
+    }),
     getRunExport: () => ({
       mode,
-      params,
+      params: {
+        ...params,
+        satelliteCount: SATELLITE_COUNT,
+        asteroidCount: ASTEROID_COUNT,
+        speedMult,
+        objects: listObjects(),
+      },
       summary: { ...world.metrics },
       metrics: world.metricSeries.slice(),
       events: world.events.slice(),
